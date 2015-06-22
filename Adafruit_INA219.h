@@ -28,7 +28,7 @@
 /*=========================================================================
     I2C ADDRESS/BITS
     -----------------------------------------------------------------------*/
-    #define INA219_ADDRESS                         (0x40)    // 1000000 (A0+A1=GND)
+    #define INA219_ADDRESS                         (0x40)    
     #define INA219_READ                            (0x01)
 /*=========================================================================*/
 
@@ -49,11 +49,18 @@
     #define INA219_CONFIG_GAIN_4_160MV             (0x1000)  // Gain 4, 160mV Range
     #define INA219_CONFIG_GAIN_8_320MV             (0x1800)  // Gain 8, 320mV Range
 	
-    #define INA219_CONFIG_BADCRES_MASK             (0x0780)  // Bus ADC Resolution Mask
-    #define INA219_CONFIG_BADCRES_9BIT             (0x0080)  // 9-bit bus res = 0..511
-    #define INA219_CONFIG_BADCRES_10BIT            (0x0100)  // 10-bit bus res = 0..1023
-    #define INA219_CONFIG_BADCRES_11BIT            (0x0200)  // 11-bit bus res = 0..2047
-    #define INA219_CONFIG_BADCRES_12BIT            (0x0400)  // 12-bit bus res = 0..4097
+    #define INA219_CONFIG_BADCRES_MASK             (0x0780)  // Bus ADC Resolution and Averaging Mask
+    #define INA219_CONFIG_BADCRES_9BIT_1S_84US     (0x0000)  // 1 x 9-bit bus sample
+    #define INA219_CONFIG_BADCRES_10BIT_1S_148US   (0x0080)  // 1 x 10-bit bus sample
+    #define INA219_CONFIG_BADCRES_11BIT_1S_276US   (0x0100)  // 1 x 11-bit bus sample
+    #define INA219_CONFIG_BADCRES_12BIT_1S_532US   (0x0180)  // 1 x 12-bit bus sample
+	#define INA219_CONFIG_BADCRES_12BIT_2S_1060US  (0x0480)	 // 2 x 12-bit bus samples averaged together
+    #define INA219_CONFIG_BADCRES_12BIT_4S_2130US  (0x0500)  // 4 x 12-bit bus samples averaged together
+    #define INA219_CONFIG_BADCRES_12BIT_8S_4260US  (0x0580)  // 8 x 12-bit bus samples averaged together
+    #define INA219_CONFIG_BADCRES_12BIT_16S_8510US (0x0600)  // 16 x 12-bit bus samples averaged together
+    #define INA219_CONFIG_BADCRES_12BIT_32S_17MS   (0x0680)  // 32 x 12-bit bus samples averaged together
+    #define INA219_CONFIG_BADCRES_12BIT_64S_34MS   (0x0700)  // 64 x 12-bit bus samples averaged together
+    #define INA219_CONFIG_BADCRES_12BIT_128S_69MS  (0x0780)  // 128 x 12-bit bus samples averaged together
     
     #define INA219_CONFIG_SADCRES_MASK             (0x0078)  // Shunt ADC Resolution and Averaging Mask
     #define INA219_CONFIG_SADCRES_9BIT_1S_84US     (0x0000)  // 1 x 9-bit shunt sample
@@ -109,28 +116,34 @@
     #define INA219_REG_CALIBRATION                 (0x05)
 /*=========================================================================*/
 
-class Adafruit_INA219{
+class Adafruit_INA219
+{
  public:
   Adafruit_INA219(uint8_t addr = INA219_ADDRESS);
-  void begin(void);
-  void setCalibration_32V_2A(void);
-  void setCalibration_32V_1A(void);
-  void setCalibration_16V_400mA(void);
-  float getBusVoltage_V(void);
+  void  begin(void);
+  float getBusVoltage_mV(void);
   float getShuntVoltage_mV(void);
   float getCurrent_mA(void);
+  float getPower_mW(void);
+  void setCalibration(	uint8_t busVoltageRange = 32,
+						uint16_t maxCurrentExpected = 3200,					
+						uint8_t ADCResolution = 12, 
+						uint8_t OPERATING_MODE = INA219_CONFIG_MODE_SANDBVOLT_CONTINUOUS);
 
  private:
   uint8_t ina219_i2caddr;
-  uint32_t ina219_calValue;
+  uint16_t ina219_calValue;
+  uint32_t ina219_conversionTime;
   // The following multipliers are used to convert raw current and power
   // values to mA and mW, taking into account the current config settings
   uint32_t ina219_currentDivider_mA;
-  uint32_t ina219_powerDivider_mW;
-  
-  void wireWriteRegister(uint8_t reg, uint16_t value);
-  void wireReadRegister(uint8_t reg, uint16_t *value);
+  uint32_t ina219_powerMultiplicator_mW;
+
   int16_t getBusVoltage_raw(void);
   int16_t getShuntVoltage_raw(void);
   int16_t getCurrent_raw(void);
+  int16_t getPower_raw(void);
+  
+  void wireWriteRegister(uint8_t reg, uint16_t value);
+  void wireReadRegister(uint8_t reg, uint16_t *value); 
 };
